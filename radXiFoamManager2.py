@@ -4,7 +4,7 @@ from shutil import copytree
 import subprocess
 from datetime import datetime
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QFileDialog, QVBoxLayout, \
-    QWidget, QPushButton, QGridLayout, QLabel, QLineEdit, QGroupBox, QTextEdit, QRadioButton, QHBoxLayout
+    QWidget, QPushButton, QGridLayout, QLabel, QLineEdit, QGroupBox, QTextEdit, QRadioButton, QHBoxLayout, QCheckBox
 
 
 class RadXiFoamManager:
@@ -21,58 +21,63 @@ class RadXiFoamManager:
         self.H2OVolumeFraction = float(h2o_volFrac)
         self.email = email
 
-    def writeMeshFile(self, path):
-        # create blockMeshDict file
-        fullname = path + r"/system/" + self.BLOCK_MESH_FILE
-        f = open(fullname, "w")
+    def replaceBlockMeshDictFile(self, content):
+        # START_X = 1
+        # END_X = 28
+        IGNITION_X = 6.1
 
-        f.write("vertices\n(\n")
+        strBox1 = "//Box 1, Point 0, 1, 2, 3, 4, 5, 6, 7\n"
+        strBox1 += "\t(1\t0\t" + str(self.wallHeight) + ")\n"
+        strBox1 += "\t(" + str(IGNITION_X) + "\t0\t" + str(self.wallHeight) + ")\n"
+        strBox1 += "\t(" + str(IGNITION_X) + "\t5\t" + str(self.wallHeight) + ")\n"
+        strBox1 += "\t(1\t5\t" + str(self.wallHeight) + ")\n"
+        strBox1 += "\t(1\t0\t11)\n"
+        strBox1 += "\t(" + str(IGNITION_X) + "\t0\t11)\n"
+        strBox1 += "\t(" + str(IGNITION_X) + "\t5\t11)\n"
+        strBox1 += "\t(1\t5\t11)\n"
 
-        f.write("\t//Block 0, Point 0, 1, 2, 3, 4, 5, 6, 7\n")
-        f.write("\t(0\t0\t" + str(self.wallHeight) + ")\n")
-        f.write("\t(" + str(6.1 + self.tentThickness / 2) + "\t0\t" + str(self.wallHeight) + ")\n")
-        f.write("\t(" + str(6.1 + self.tentThickness / 2) + "\t5\t" + str(self.wallHeight) + ")\n")
-        f.write("\t(0\t5\t" + str(self.wallHeight) + ")\n")
-        f.write("\t(0\t0\t11)\n")
-        f.write("\t(" + str(6.1 + self.tentThickness / 2) + "\t0\t11)\n")
-        f.write("\t(" + str(6.1 + self.tentThickness / 2) + "\t5\t11)\n")
-        f.write("\t(0\t5\t11)\n")
+        strBox2 = "\n\t//Box 2 Point 8, 9, 10, 11\n"
+        strBox2 += "\t(1\t0\t0)\n"
+        strBox2 += "\t(" + str(IGNITION_X) + "\t0\t0)\n"
+        strBox2 += "\t(" + str(IGNITION_X) + "\t5\t0)\n"
+        strBox2 += "\t(1\t5\t0)\n"
 
-        f.write("\n\t//Block 1 Point 8, 9, 10, 11\n")
-        f.write("\t(0\t0\t0)\n")
-        f.write("\t(" + str(6.1 + self.tentThickness / 2) + "\t0\t0)\n")
-        f.write("\t(" + str(6.1 + self.tentThickness / 2) + "\t5\t0)\n")
-        f.write("\t(0\t5\t0)\n")
+        strBox3 = "\n\t//Box 3 Point 12, 13, 14, 15\n"
+        strBox3 += "\t(" + str(IGNITION_X + self.wallDistance) + "\t0\t" + str(self.wallHeight) + ")\n"
+        strBox3 += "\t(" + str(IGNITION_X + self.wallDistance) + "\t5\t" + str(self.wallHeight) + ")\n"
+        strBox3 += "\t(" + str(IGNITION_X + self.wallDistance) + "\t0\t11)\n"
+        strBox3 += "\t(" + str(IGNITION_X + self.wallDistance) + "\t5\t11)\n"
 
-        f.write("\n\t//Block 2 Point 12, 13, 14, 15\n")
-        f.write("\t(" + str(6.1 + self.wallDistance) + "\t0\t" + str(self.wallHeight) + ")\n")
-        f.write("\t(" + str(6.1 + self.wallDistance) + "\t5\t" + str(self.wallHeight) + ")\n")
-        f.write("\t(" + str(6.1 + self.wallDistance) + "\t0\t11)\n")
-        f.write("\t(" + str(6.1 + self.wallDistance) + "\t5\t11)\n")
+        # strBox4 = "\n\t//Box 4\n"
 
-        f.write("\n\t//Block 3\n")
+        strBox5 = "\n\t//Box 5 Point 16, 17, 18, 19, 20, 21, 22, 23\n"
+        strBox5 += "\t(" + str(IGNITION_X + self.wallDistance + self.wallThickness) + "\t0\t" + str(self.wallHeight) + ")\n"
+        strBox5 += "\t(28\t0\t" + str(self.wallHeight) + ")\n"
+        strBox5 += "\t(28\t5\t" + str(self.wallHeight) + ")\n"
+        strBox5 += "\t(" + str(IGNITION_X + self.wallDistance + self.wallThickness) + "\t5\t" + str(self.wallHeight) + ")\n"
+        strBox5 += "\t(" + str(IGNITION_X + self.wallDistance + self.wallThickness) + "\t0\t11)\n"
+        strBox5 += "\t(28\t0\t11)\n"
+        strBox5 += "\t(28\t5\t11)\n"
+        strBox5 += "\t(" + str(IGNITION_X + self.wallDistance + self.wallThickness) + "\t5\t11)\n"
 
-        f.write("\n\t//Block 4 Point 16, 17, 18, 19, 20, 21, 22, 23\n")
-        f.write("\t(" + str(6.1 + self.wallDistance + self.wallThickness) + "\t0\t" + str(self.wallHeight) + ")\n")
-        f.write("\t(23\t0\t" + str(self.wallHeight) + ")\n")
-        f.write("\t(23\t5\t" + str(self.wallHeight) + ")\n")
-        f.write("\t(" + str(6.1 + self.wallDistance + self.wallThickness) + "\t5\t" + str(self.wallHeight) + ")\n")
-        f.write("\t(" + str(6.1 + self.wallDistance + self.wallThickness) + "\t0\t11)\n")
-        f.write("\t(23\t0\t11)\n")
-        f.write("\t(23\t5\t11)\n")
-        f.write("\t(" + str(6.1 + self.wallDistance + self.wallThickness) + "\t5\t11)\n")
+        strBox6 = "\n\t//Box 6 Point 24, 25\n"
+        strBox6 += "\t(" + str(IGNITION_X + self.wallDistance) + "\t0\t0)\n"
+        strBox6 += "\t(" + str(IGNITION_X + self.wallDistance) + "\t5\t0)\n"
 
-        f.write("\n\t//Block 5 Point 24, 25\n")
-        f.write("\t(" + str(6.1 + self.wallDistance) + "\t0\t0)\n")
-        f.write("\t(" + str(6.1 + self.wallDistance) + "\t5\t0)\n")
+        strBox7 = "\n\t//Box 7 Point 26, 27, 28, 29\n"
+        strBox7 += "\t(" + str(IGNITION_X + self.wallDistance + self.wallThickness) + "\t0\t0)\n"
+        strBox7 += "\t(28\t0\t0)\n"
+        strBox7 += "\t(28\t5\t0)\n"
+        strBox7 += "\t(" + str(IGNITION_X + self.wallDistance + self.wallThickness) + "\t5\t0)\n"
 
-        f.write("\n\t//Block 6 Point 26, 27, 28, 29\n")
-        f.write("\t(" + str(6.1 + self.wallDistance + self.wallThickness) + "\t0\t0)\n")
-        f.write("\t(20.23\t0\t0)\n")
-        f.write("\t(23\t5\t0)\n")
-        f.write("\t(" + str(6.1 + self.wallDistance + self.wallThickness) + "\t5\t0)\n")
+        content = content.replace('BOX_1', strBox1)
+        content = content.replace('BOX_2', strBox2)
+        content = content.replace('BOX_3', strBox3)
+        content = content.replace('BOX_5', strBox5)
+        content = content.replace('BOX_6', strBox6)
+        content = content.replace('BOX_7', strBox7)
 
-        f.close()
+        return content
 
     def calculateMassFraction(self, H2_vf, H2O_vf):
         O2_vf = (1 - (H2_vf + H2O_vf)) * 0.21
@@ -100,6 +105,19 @@ class RadXiFoamManager:
         return mf[0], mf[3], mf[2], H2_eq_ratio, H2_alpha, H2_beta
 
     def replaceAndWriteFiles(self, template_dir, dest_path):
+        blockMeshDictFile = template_dir + self.BLOCK_MESH_FILE
+        f = open(blockMeshDictFile, "r")
+        content = f.read()
+        f.close()
+
+        content = self.replaceBlockMeshDictFile(content)
+
+        # create blockMeshDict file
+        fullname = dest_path + r"/system/" + self.BLOCK_MESH_FILE
+        f = open(fullname, "w")
+        f.write(content)
+        f.close()
+
         h2_m_fraction, h2o_m_fraction, n2_m_fraction, eq_ratio, alpha, beta = self.calculateMassFraction(
             self.H2VolumeFraction, self.H2OVolumeFraction)
 
@@ -109,7 +127,7 @@ class RadXiFoamManager:
         f.close()
 
         content = content.replace('VOL_SCALAR_FIELD_VALUE_FT', str(h2_m_fraction))
-        content = content.replace('VOL_SCALAR_FIELD_VALUE_N2', str(h2o_m_fraction))
+        content = content.replace('VOL_SCALAR_FIELD_VALUE_N2', str(n2_m_fraction))
         content = content.replace('VOL_SCALAR_FIELD_VALUE_H2O', str(h2o_m_fraction))
 
         fullname = dest_path + r"/system/" + self.FIELD_DICT_FILE
@@ -179,13 +197,13 @@ class RadXiFoamWindow(QMainWindow):
         groupbox = QGroupBox('Folders')
 
         tempDirLabel = QLabel('Template directory')
-        self.editTempDir = QLineEdit(r"/home/dahan/OpenFOAM/tutorial/radXiTemplate/")
+        self.editTempDir = QLineEdit(r"/home/dahan/OpenFOAM/tutorial/SRI_radXiFoamTemplate/")
         self.editTempDir.setFixedWidth(600)
         openTempDirBtn = QPushButton('...')
         openTempDirBtn.clicked.connect(self.showTempDirDialog)
 
         srcDirLabel = QLabel('Source directory')
-        self.editSrcDir = QLineEdit(r"/home/dahan/OpenFOAM/tutorial/radXiTemplate/Source")
+        self.editSrcDir = QLineEdit(r"/home/dahan/OpenFOAM/tutorial/SRI_radXiFoamTemplate/Source")
         self.editSrcDir.setFixedWidth(600)
         openSrcDirBtn = QPushButton('...')
         openSrcDirBtn.clicked.connect(self.showSrcDirDialog)
@@ -263,10 +281,12 @@ class RadXiFoamWindow(QMainWindow):
 
         requestBtn = QPushButton('Start CFD Calculation')
         requestBtn.clicked.connect(self.startCFDCalculation)
-        self.radioSingle = QRadioButton('Single', self)
+        self.radioSingle = QRadioButton('Single-Core', self)
         self.radioSingle.setChecked(True)
         self.radioMulti = QRadioButton(self)
-        self.radioMulti.setText('Multi')
+        self.radioMulti.setText('Multi-Core (16)')
+        self.cbOnline = QCheckBox('Online Enabled (for report)', self)
+        self.cbOnline.setChecked(True)
 
         self.messageTE = QTextEdit(self, readOnly=True)
 
@@ -275,6 +295,7 @@ class RadXiFoamWindow(QMainWindow):
         layout.addWidget(requestBtn, 1, 0)
         layout.addWidget(self.radioSingle, 1, 1)
         layout.addWidget(self.radioMulti, 1, 2)
+        layout.addWidget(self.cbOnline, 1, 3)
         groupbox.setLayout(layout)
 
         return groupbox
@@ -306,8 +327,10 @@ class RadXiFoamWindow(QMainWindow):
     def copyReportHtml(self, dest_dir, sWallDistance, sWallHeight, sWallThickness, sTentThickness, sH2Fraction, sH2OFraction):
         report_dir = dest_dir + '/postProcessing/sensorP/0'
 
-        reportTemplateFiale = './kaeri_CFD_result_TEMPLATE.html'
-        f = open(reportTemplateFiale, "r")
+        reportTemplateFile = './kaeri_CFD_result_TEMPLATE.html'
+        if self.cbOnline.isChecked():
+            reportTemplateFile = './kaeri_CFD_result_TEMPLATE_online.html'
+        f = open(reportTemplateFile, "r")
         content = f.read()
         f.close()
 
@@ -318,15 +341,19 @@ class RadXiFoamWindow(QMainWindow):
         content = content.replace('H2_VOLFRAC', sH2Fraction)
         content = content.replace('H2O_VOLFRAC', sH2OFraction)
 
+        date = datetime.now()
+        datestr = date.strftime("%Y-%m-%d %H:%S")
+        content = content.replace('DATE_NOW', datestr)
+
         sWallDistance10x = str(float(sWallDistance) * 10)
         sWallHeight10x = str(float(sWallHeight) * 10)
         sWallThickness10x = str(float(sWallThickness) * 10)
         sTentThickness10x = str(float(sTentThickness) * 10)
 
-        content = content.replace('WALL_DISTANCE_10X', sWallDistance10x)
-        content = content.replace('WALL_HEIGHT_10X', sWallHeight10x)
-        content = content.replace('WALL_THICKNESS_10X', sWallThickness10x)
-        content = content.replace('TENT_WIDTH_10X', sTentThickness10x)
+        content = content.replace('WALL_10X_DISTANCE', sWallDistance10x)
+        content = content.replace('WALL_10X_HEIGHT', sWallHeight10x)
+        content = content.replace('WALL_10X_THICKNESS', sWallThickness10x)
+        content = content.replace('TENT_10X_WIDTH', sTentThickness10x)
 
         fullname = report_dir + r"/kaeri_CFD_result.html"
         f = open(fullname, "w")
@@ -370,7 +397,6 @@ class RadXiFoamWindow(QMainWindow):
 
             radXi = RadXiFoamManager(wallDistance, wallHeight, wallThickness, tentThickness, H2Fraction, H2OFraction, email)
 
-            radXi.writeMeshFile(destination_dir)
             radXi.replaceAndWriteFiles(template_dir, destination_dir)
 
             self.messageTE.append('Mesh file and other properties files are written and copied.')
