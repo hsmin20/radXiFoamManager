@@ -327,7 +327,7 @@ class RadXiFoamWindow(QMainWindow):
     def copyReportHtml(self, dest_dir, sWallDistance, sWallHeight, sWallThickness, sTentThickness, sH2Fraction, sH2OFraction):
         report_dir = dest_dir + '/postProcessing/sensorP/0'
 
-        reportTemplateFile = './kaeri_CFD_result_TEMPLATE.html'
+        reportTemplateFile = './kaeri_CFD_result_TEMPLATE_offline.html'
         if self.cbOnline.isChecked():
             reportTemplateFile = './kaeri_CFD_result_TEMPLATE_online.html'
         f = open(reportTemplateFile, "r")

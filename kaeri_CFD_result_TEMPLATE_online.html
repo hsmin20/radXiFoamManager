@@ -351,7 +351,7 @@
 		ctx.fillText(name, x+4, y-ARROW_HEAD_LENGTH/3);
     }
 
-	function drawEnvironments(tentWidth, barrierDistance, barrierHeight, barrierThickness) {
+	function drawEnvironments(tentWidth, barrierDistance, barrierHeight, barrierThickness, sensorPositions) {
 		const c = document.getElementById("myCanvas");
 		const ctx = c.getContext("2d");
 
@@ -367,15 +367,23 @@
         drawBarrierHeight(ctx, tentWidth, barrierDistance, barrierHeight, barrierThickness);
 		drawBarrierThickness(ctx, tentWidth, barrierDistance, barrierHeight, barrierThickness);
 
-        // 4. Draw Probes
-        drawProbe(ctx, tentWidth, 10.1, 0.1, "P0");
-        drawProbe(ctx, tentWidth, 61.5, 0.1, "P1");
-        drawProbe(ctx, tentWidth, 92, 0.1, "P2");
-        drawProbe(ctx, tentWidth, 111.9, 10, "P3");
-        drawProbe(ctx, tentWidth, 112, 20.1, "P4");
-        drawProbe(ctx, tentWidth, 133, 0.1, "P5");
-        drawProbe(ctx, tentWidth, 171, 0.1, "P6");
-        drawProbe(ctx, tentWidth, 271, 10.1, "P7");
+        // 4. Draw Probes. assume (x1, y1, z1), (x2, y2, z2) format
+        // 4-1 remove all spaces, parenthesis
+        sensorPositions = sensorPositions.replace(/\s+/g, '');
+        sensorPositions = sensorPositions.replaceAll('(', '');
+        sensorPositions = sensorPositions.replaceAll(')', '');
+
+        let sensorArray = sensorPositions.split(',');
+        const sensorSize = sensorArray.length;
+        let j = 0;
+        for(let i=0; i<sensorSize; i+=3) {
+            let sensorName = "P" + j;
+            let xpos = parseFloat(sensorArray[i]) * 10;
+            let ypos = parseFloat(sensorArray[i+1]) * 10;
+            // let zpos = parseFloat(sensorArray[i+2]) * 10;
+            drawProbe(ctx, tentWidth, xpos, ypos, sensorName);
+            j++;
+        }
 	}
 
     //-----------------------------------------------------------------------------------------------------------
@@ -671,7 +679,16 @@
                     <td>H2O_VOLFRAC</td>
                 </tr>
                 <tr>
+                    <th scope="row">Sensor Positions</th>
+                    <td>SENSOR_POSITIONS</td>
+                </tr>
+                <tr>
                     <th scope="row">계산일</th>
+                    <td>DATE_NOW</td>
+                </tr>
+                <tr>
+                    <th scope="row">요청자</th>
+                    <td>EMAIL_ADDR</td>
                 </tr>
                 </tbody>
             </table>
@@ -684,7 +701,7 @@
             <canvas id="myCanvas" width="1300" height="300"></canvas>
             <script>
             // All dimensions are cm. Needs to be multiplied by 10
-            drawEnvironments(TENT_10X_WIDTH, WALL_10X_DISTANCE, WALL_10X_HEIGHT, WALL_10X_THICKNESS);
+            drawEnvironments(TENT_10X_WIDTH, WALL_10X_DISTANCE, WALL_10X_HEIGHT, WALL_10X_THICKNESS, "SENSOR_POSITIONS");
 
             </script> 
 
@@ -699,29 +716,13 @@
             <table>
                 <thead>
                 <tr>
-                    <th scope="cols"></th>
-                    <th scope="cols">P0</th>
-                    <th scope="cols">P1</th>
-                    <th scope="cols">P2</th>
-                    <th scope="cols">P3</th>
-                    <th scope="cols">P4</th>
-                    <th scope="cols">P5</th>
-                    <th scope="cols">P6</th>
-                    <th scope="cols">P7</th>
+                    TABLE_COLUMN
                 </tr>
                 </thead>
                 <tbody>
                 <tr>
                     <th scope="row"><input type='checkbox' value='100' id="checkAll" name="checkAll" onclick='selectAll(this)' /></th>
-                    <td><input type='checkbox' value='0' id="check0" name="check0" /></td>
-                    <td><input type='checkbox' value='1' id="check1" name="check1" /></td>
-                    <td><input type='checkbox' value='2' id="check2" name="check2" /></td>
-                    <td><input type='checkbox' value='3' id="check3" name="check3" /></td>
-                    <td><input type='checkbox' value='4' id="check4" name="check4" /></td>
-                    <td><input type='checkbox' value='5' id="check5" name="check5" /></td>
-                    <td><input type='checkbox' value='6' id="check6" name="check6" /></td>
-                    <td><input type='checkbox' value='7' id="check7" name="check7" disabled/></td>
-
+                    TABLE_ROW
                 </tr>
             </table>
 
@@ -747,6 +748,3 @@
             </div>
 	</body>
 </html>
-
-
-               
