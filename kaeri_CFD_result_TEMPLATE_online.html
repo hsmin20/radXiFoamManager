@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+    <meta charset="utf-8">
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="MobileOptimized" content="320">
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="pinterest" content="nohover"></meta>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <style>
+	table {
+	  border-collapse: collapse;
+	  border: 2px solid rgb(140 140 140);
+	  font-family: sans-serif;
+	  font-size: 0.8rem;
+	  letter-spacing: 1px;
+	}
+
+	caption {
+	  caption-side: bottom;
+	  padding: 10px;
+	  font-weight: bold;
+	}
+
+	thead,
+	tfoot {
+	  background-color: rgb(228 240 245);
+	}
+
+	th,
+	td {
+	  border: 1px solid rgb(160 160 160);
+	  padding: 8px 10px;
+	}
+
+	td:last-of-type {
+	  text-align: center;
+	}
+
+	tbody > tr:nth-of-type(even) {
+	  background-color: rgb(237 238 242);
+	}
+
+	tfoot th {
+	  text-align: right;
+	}
+
+	tfoot td {
+	  font-weight: bold;
+	}
+
+    /* The Modal (background) */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        padding-top: 100px;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgb(255, 255, 255);
+    }
+
+    /* Modal Content */
+    .modal-content {
+        position: relative;
+        background-color: #fefefe;
+        margin: auto;
+        padding: 0;
+        width: 95%;
+        max-width: 1920px;
+    }
+
+    /* The Close Button */
+    .close {
+        color: rgb(0, 0, 0);
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 35px;
+        font-weight: bold;
+    }
+
+    .graph {
+        display: none;
+    }
+
+    .loadfont {
+        width: 350px;
+        height: 80px;
+        margin: 200px auto;
+        padding: 15px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 25px;
+        position: absolute;
+        left: 50%;
+        top: 250px;
+        transform: translate(-50%, -50%);
+        -ms-transform: translate(-50%, -50%);
+        -webkit-transform: translate(-50%, -50%);
+    }
+    .loader {
+        position: absolute;
+        left: 48%;
+        top: 410px;
+        width: 80px;
+        height: 80px;
+        margin: 80px auto;
+        display:inline-block;
+        padding:0px;
+        border-radius:100%;
+        border:6px solid;
+        border-top-color:rgba(254, 168, 23, 0.65);
+        border-bottom-color:rgba(57, 154, 219, 0.65);
+        border-left-color:rgba(188, 84, 93, 0.95);
+        border-right-color:rgba(137, 188, 79, 0.95);
+        -webkit-animation: loader 2s ease-in-out infinite alternate;
+        animation: loader 2s ease-in-out infinite alternate;
+    }
+
+	</style>
+	<script src="https://cdn.plot.ly/plotly-3.0.0.min.js" charset="utf-8"></script>
+	<script>
+	const LEFT_TOP_X = 10;
+	const LEFT_TOP_Y = 10;
+    const LEFT_BOTTOM_Y = 280;
+    const RIGHT_TOP_X = 1200;
+    const TENT_MARGIN = 200;
+	const TENT_HEIGHT = 10;
+    const GROUND_THICKNESS = 10;
+    const ARROW_LINE_LENGTH = 50;
+	const ARROW_HEAD_LENGTH = 10.0 * Math.cos(Math.PI / 4);
+
+    const MULTIPLIER = 4;
+
+    function drawGround(ctx) {
+    	ctx.beginPath();
+		ctx.rect(LEFT_TOP_X, LEFT_BOTTOM_Y-GROUND_THICKNESS, RIGHT_TOP_X, GROUND_THICKNESS);
+		ctx.stroke();
+	}
+
+    function drawTent(ctx, tentWidth) {
+		let tentRectLeftX = LEFT_TOP_X + TENT_MARGIN;
+		let tentRectLeftY = LEFT_BOTTOM_Y - GROUND_THICKNESS - TENT_HEIGHT * MULTIPLIER;
+		let tentRectWidth = tentWidth * MULTIPLIER;
+		let tentRectHeight = TENT_HEIGHT * MULTIPLIER;
+		
+		ctx.beginPath();
+		ctx.rect(tentRectLeftX, tentRectLeftY, tentRectWidth, tentRectHeight);
+        ctx.stroke();
+
+        const GUIDE_GAP = 50;
+
+		// tent length arrow line
+        ctx.beginPath();
+
+        let leftX = tentRectLeftX - ARROW_LINE_LENGTH;
+		let leftY = tentRectLeftY + TENT_HEIGHT * (1 / 3) * MULTIPLIER;
+		let rightX = tentRectLeftX;
+		let rightY = leftY;
+		ctx.moveTo(leftX, leftY);
+		ctx.lineTo(rightX, rightY);
+		
+		let rightUpperArrowHeadX = rightX - ARROW_HEAD_LENGTH;
+		let rightUpperArrowHeadY = rightY - ARROW_HEAD_LENGTH;
+		ctx.moveTo(rightX, rightY);
+		ctx.lineTo(rightUpperArrowHeadX, rightUpperArrowHeadY);
+		
+		let rightLowerArrowHeadX = rightX - ARROW_HEAD_LENGTH;
+		let rightLowerArrowHeadY = rightY + ARROW_HEAD_LENGTH;
+		ctx.moveTo(rightX, rightY);
+		ctx.lineTo(rightLowerArrowHeadX, rightLowerArrowHeadY);
+
+        ctx.stroke();
+
+        ctx.beginPath();
+        
+        let leftX2 = tentRectLeftX + tentRectWidth;
+        let rightX2 = leftX2 + ARROW_LINE_LENGTH;
+        ctx.moveTo(leftX2, leftY);
+		ctx.lineTo(rightX2, rightY);
+
+        let leftUpperArrowHeadX = leftX2 + ARROW_HEAD_LENGTH;
+		let leftUpperArrowHeadY = leftY - ARROW_HEAD_LENGTH;
+		ctx.moveTo(leftX2, leftY);
+		ctx.lineTo(leftUpperArrowHeadX, leftUpperArrowHeadY);
+		
+		let leftLowerArrowHeadX = leftX2 + ARROW_HEAD_LENGTH;
+		let leftLowerArrowHeadY = leftY+ ARROW_HEAD_LENGTH;
+		ctx.moveTo(leftX2, leftY);
+		ctx.lineTo(leftLowerArrowHeadX, leftLowerArrowHeadY);
+		
+		ctx.stroke();
+
+		tlInMeter = tentWidth / 10;
+		ctx.font = "16px serif";
+		ctx.fillText(tlInMeter.toString() + "m", leftX, leftY-2);
+	}
+
+    function drawBarrier(ctx, tentWidth, barrierDistance, barrierHeight, barrierDepth) {
+		let barrierRectLeftX = LEFT_TOP_X + TENT_MARGIN + tentWidth * MULTIPLIER + barrierDistance * MULTIPLIER;
+        let barrierRectLeftY = LEFT_BOTTOM_Y - GROUND_THICKNESS - barrierHeight * MULTIPLIER;
+
+		ctx.beginPath();
+		// Upper Barrier
+		ctx.rect(barrierRectLeftX, barrierRectLeftY, barrierDepth * MULTIPLIER, barrierHeight * MULTIPLIER);
+		
+		ctx.stroke();
+	}
+
+    function drawBarrierDistance(ctx, tentWidth, barrierDistance) {
+        let leftX = LEFT_TOP_X + TENT_MARGIN + tentWidth * MULTIPLIER; // tentRectRightX
+        let leftY = LEFT_BOTTOM_Y - GROUND_THICKNESS - TENT_HEIGHT * (1 / 3) * MULTIPLIER;
+        let rightX = leftX + barrierDistance * MULTIPLIER;
+        let rightY = leftY;
+		ctx.moveTo(leftX, leftY);
+		ctx.lineTo(rightX, leftY);
+		
+		let leftUpperArrowHeadX = leftX + ARROW_HEAD_LENGTH;
+		let leftUpperArrowHeadY = leftY - ARROW_HEAD_LENGTH;
+		ctx.moveTo(leftX, leftY);
+		ctx.lineTo(leftUpperArrowHeadX, leftUpperArrowHeadY);
+
+        let leftLowerArrowHeadX = leftX + ARROW_HEAD_LENGTH;
+		let leftLowerArrowHeadY = leftY + ARROW_HEAD_LENGTH;
+		ctx.moveTo(leftX, leftY);
+		ctx.lineTo(leftLowerArrowHeadX, leftLowerArrowHeadY);
+		
+		let rightUpperArrowHeadX = rightX - ARROW_HEAD_LENGTH;
+		let rightUpperArrowHeadY = rightY - ARROW_HEAD_LENGTH;
+		ctx.moveTo(rightX, rightY);
+		ctx.lineTo(rightUpperArrowHeadX, rightUpperArrowHeadY);
+		
+		let rightLowerArrowHeadX = rightX - ARROW_HEAD_LENGTH;
+		let rightLowerArrowHeadY = rightY + ARROW_HEAD_LENGTH;
+		ctx.moveTo(rightX, rightY);
+		ctx.lineTo(rightLowerArrowHeadX, rightLowerArrowHeadY);
+		
+		ctx.stroke();
+		
+		bdInMeter = barrierDistance / 10.0;
+		ctx.font = "16px serif";
+		ctx.fillText(bdInMeter.toString() + "m", (leftX+rightX)/2, leftY-2);
+	}
+
+    function drawBarrierHeight(ctx, tentWidth, barrierDistance, barrierHeight, barrierThickness) {
+        let leftX = LEFT_TOP_X + TENT_MARGIN + (tentWidth + barrierDistance + barrierThickness) * MULTIPLIER;
+        let leftY = LEFT_BOTTOM_Y - GROUND_THICKNESS - barrierHeight * MULTIPLIER;
+
+        // draw upper guide
+		// ctx.beginPath();
+        ctx.moveTo(leftX+2, leftY);
+        ctx.lineTo(leftX+ARROW_LINE_LENGTH/2, leftY);
+
+		leftX += ARROW_LINE_LENGTH / 4;
+		ctx.moveTo(leftX, leftY);
+		ctx.lineTo(leftX, LEFT_BOTTOM_Y - GROUND_THICKNESS);
+		
+		ctx.moveTo(leftX, leftY);
+		ctx.lineTo(leftX-ARROW_HEAD_LENGTH, leftY+ARROW_HEAD_LENGTH);
+		
+	    ctx.moveTo(leftX, leftY);
+		ctx.lineTo(leftX+ARROW_HEAD_LENGTH, leftY+ARROW_HEAD_LENGTH);
+		
+		leftY = LEFT_BOTTOM_Y - GROUND_THICKNESS
+		ctx.moveTo(leftX, leftY);
+		ctx.lineTo(leftX-ARROW_HEAD_LENGTH, leftY-ARROW_HEAD_LENGTH);
+		
+		ctx.moveTo(leftX, leftY);
+		ctx.lineTo(leftX+ARROW_HEAD_LENGTH, leftY-ARROW_HEAD_LENGTH);
+		
+		ctx.stroke();
+		
+		tmInMeter = barrierHeight / 10;
+		ctx.font = "16px serif";
+		ctx.fillText(tmInMeter.toString() + "m", leftX+2, leftY-(barrierHeight * MULTIPLIER) / 2);
+	}
+
+
+    function drawBarrierThickness(ctx, tentWidth, barrierDistance, barrierHeight, barrierThickness) {
+		let leftX = LEFT_TOP_X + TENT_MARGIN + (tentWidth + barrierDistance) * MULTIPLIER;
+        let leftY = LEFT_BOTTOM_Y - GROUND_THICKNESS - barrierHeight * MULTIPLIER;
+
+        // draw left & right guide
+		// ctx.beginPath();
+
+        ctx.moveTo(leftX, leftY-2);
+        ctx.lineTo(leftX, leftY - ARROW_LINE_LENGTH/2);
+
+        let rightX = leftX + barrierThickness  * MULTIPLIER;
+
+        ctx.moveTo(rightX, leftY-2);
+        ctx.lineTo(rightX, leftY - ARROW_LINE_LENGTH/2);
+
+        let leftArrowX = leftX;
+		let leftArrowY = leftY;
+		ctx.moveTo(leftArrowX, leftArrowY-ARROW_LINE_LENGTH/4);
+		ctx.lineTo(leftArrowX - ARROW_LINE_LENGTH/2, leftArrowY-ARROW_LINE_LENGTH/4);
+		
+		let leftUpperArrowHeadX = leftX;
+		let leftUpperArrowHeadY = leftY;
+		ctx.moveTo(leftUpperArrowHeadX, leftUpperArrowHeadY-ARROW_LINE_LENGTH/4);
+		ctx.lineTo(leftUpperArrowHeadX - ARROW_HEAD_LENGTH, leftUpperArrowHeadY-ARROW_LINE_LENGTH/4-ARROW_HEAD_LENGTH);
+		
+		let leftLowerArrowHeadX = leftX;
+		let leftLowerArrowHeadY = leftY;
+		ctx.moveTo(leftUpperArrowHeadX, leftUpperArrowHeadY-ARROW_LINE_LENGTH/4);
+		ctx.lineTo(leftUpperArrowHeadX - ARROW_HEAD_LENGTH, leftUpperArrowHeadY-ARROW_LINE_LENGTH/4+ARROW_HEAD_LENGTH);
+		
+		let rightArrowX = leftArrowX + barrierThickness * MULTIPLIER;
+        let rightArrowY = leftArrowY - ARROW_LINE_LENGTH/4;
+		ctx.moveTo(rightArrowX, rightArrowY);
+		ctx.lineTo(rightArrowX+ARROW_LINE_LENGTH/2, rightArrowY);
+		
+		let rightUpperArrowHeadX = rightArrowX;
+		let rightUpperArrowHeadY = rightArrowY;
+		ctx.moveTo(rightUpperArrowHeadX, rightUpperArrowHeadY);
+		ctx.lineTo(rightUpperArrowHeadX+ARROW_HEAD_LENGTH, rightUpperArrowHeadY-ARROW_HEAD_LENGTH);
+		
+		ctx.moveTo(rightUpperArrowHeadX, rightUpperArrowHeadY);
+		ctx.lineTo(rightUpperArrowHeadX+ARROW_HEAD_LENGTH, rightUpperArrowHeadY+ARROW_HEAD_LENGTH);
+		
+		ctx.stroke();
+		
+		bdepInMeter = barrierThickness / 10;
+		ctx.font = "16px serif";
+		ctx.fillText(bdepInMeter.toString() + "m", rightArrowX + ARROW_HEAD_LENGTH+2, rightArrowY-2);
+	}
+
+    function drawProbe(ctx, tentWidth, posx, posy, name) {
+        const tentCenterX = LEFT_TOP_X + TENT_MARGIN + (tentWidth / 2) * MULTIPLIER;
+        const CENTER_VALUE = 61.5;
+
+        let distFromCenter = (posx - CENTER_VALUE);
+        let x = tentCenterX + distFromCenter * MULTIPLIER;
+        let y = LEFT_BOTTOM_Y - GROUND_THICKNESS - posy * MULTIPLIER;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, 2 * Math.PI);
+        ctx.strokeStyle = "red";
+        ctx.stroke();
+
+        ctx.font = "12px serif";
+		ctx.fillText(name, x+4, y-ARROW_HEAD_LENGTH/3);
+    }
+
+	function drawEnvironments(tentWidth, barrierDistance, barrierHeight, barrierThickness) {
+		const c = document.getElementById("myCanvas");
+		const ctx = c.getContext("2d");
+
+        // 1. Draw Ground
+        drawGround(ctx);
+		
+		// 2. Draw Tent
+		drawTent(ctx, tentWidth);
+		
+		// 3. Draw Barriers
+		drawBarrier(ctx, tentWidth, barrierDistance, barrierHeight, barrierThickness);
+		drawBarrierDistance(ctx, tentWidth, barrierDistance);
+        drawBarrierHeight(ctx, tentWidth, barrierDistance, barrierHeight, barrierThickness);
+		drawBarrierThickness(ctx, tentWidth, barrierDistance, barrierHeight, barrierThickness);
+
+        // 4. Draw Probes
+        drawProbe(ctx, tentWidth, 10.1, 0.1, "P0");
+        drawProbe(ctx, tentWidth, 61.5, 0.1, "P1");
+        drawProbe(ctx, tentWidth, 92, 0.1, "P2");
+        drawProbe(ctx, tentWidth, 111.9, 10, "P3");
+        drawProbe(ctx, tentWidth, 112, 20.1, "P4");
+        drawProbe(ctx, tentWidth, 133, 0.1, "P5");
+        drawProbe(ctx, tentWidth, 171, 0.1, "P6");
+        drawProbe(ctx, tentWidth, 271, 10.1, "P7");
+	}
+
+    //-----------------------------------------------------------------------------------------------------------
+
+    function selectAll(caller){
+        var inputs = document.getElementsByTagName('input');
+        for(var i = 0; i < inputs.length; i++) {
+            if(inputs[i].getAttribute("type") == "checkbox" && !inputs[i].disabled) {
+                inputs[i].checked = caller.checked;
+            }
+        }
+    }
+
+    function closeGraph() {
+        document.getElementById('graphModal').style.display = "none";
+    }
+
+    function Array2D(x, y) {
+        var array2D = new Array(x);
+        for(var i = 0; i < array2D.length; i++)  {
+            array2D[i] = new Array(y);
+        }
+
+        return array2D;
+    }
+
+    var timeArray = [];
+    var pressureArray = Array2D(8, 1000);
+
+    function readFile(input) {
+        let file = input.files[0];
+        var reader = new FileReader();
+        reader.onload = function(progressEvent) {
+            // Entire file
+            const text = this.result;
+
+            // By lines
+            var lines = text.split('\n');
+            for (var line = 0; line < lines.length-1; line++) {
+                // ignore first 10 lines
+                if(line < 10 || lines.length == 0) {
+                    continue;
+                }
+
+                let ar = lines[line].trim().split(/\s+/);
+                timeArray[line-10] = ar[0];
+                for(let index=1; index<9; index++) {
+                    pressureArray[index-1][line-10] = ar[index];
+                }
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function get_one_plot(x_data, y_data, name, setcolor){
+        var one_plot_data = {
+            x: x_data,
+            y: y_data,
+            name: name.replace(/_/g, '.'),
+            xaxis:'time',
+            yaxis:'pressure',
+            type: 'scatter',
+            marker: {
+                size: 2,
+            },
+            mode: 'markers',
+            colors: {color: setcolor}
+        };
+        return one_plot_data;
+    }
+
+    function get_overpressure(x_data, y_data, name, setcolor){
+        var one_plot_data = {
+            x: x_data,
+            y: y_data,
+            name: name,
+            type: 'scatter',
+            line: {color: setcolor}
+        };
+        return one_plot_data;
+    }
+
+    function get_impulse(x_data, y_data, name, setcolor){
+        var one_plot_data = {
+            x: x_data,
+            y: y_data,
+            name: name,
+            yaxis: 'y2',
+            type: 'bar',
+            line: {color: setcolor},
+            marker: {
+                color: 'rgb(158,202,225)',
+                opacity: 0.6,
+                line: {
+                color: setcolor,
+                width: 1.5
+                }
+            }
+        };
+        return one_plot_data;
+    }
+
+    function randomColor() {
+        var colorCode = "#" + Math.round(Math.random() * 0xffffff).toString(16);
+        return colorCode;
+    }
+
+    function _showGraph(sensors) {
+        var size = 1000;
+        let noCol = sensors.length; // should be 8
+
+        var trace_data = [];
+        for(let cur_col=0; cur_col<noCol; cur_col++) {
+            var y_data = [];
+            let probeNo = parseInt(sensors[cur_col]);
+            let legendName = 'Probe' + probeNo;
+            for(var i=0; i<size; i++) { 
+                y_data.push(pressureArray[probeNo][i]);
+            }
+            var trace1 = get_one_plot(timeArray, y_data, legendName, randomColor);
+            trace_data.push(trace1);
+        }
+
+        var layout = {
+            title: '폭발 압력그래프',
+            width: 1200,
+            height: 870,
+            xaxis: {title: '시간 (sec)'},
+            yaxis: {title: '압력 (kPa)'},
+            legend: {itemsizing: 'constant', itemwidth: 45},
+        };
+        Plotly.newPlot('graph', trace_data, layout);
+
+        document.getElementById('popup').style.display = 'none';
+
+        document.getElementById('graphModal').style.display = "block";
+        var grpdiv = document.getElementById('graph');
+        grpdiv.style.display = "block";
+    }
+
+    function showGraph() {
+        var selectedSensors = [];
+        var inputs = document.getElementsByTagName('input');
+        for(var i = 0; i < inputs.length; i++) {
+            if(inputs[i].getAttribute("type") == "checkbox" && inputs[i].checked == true && inputs[i].value != 100) {
+                selectedSensors.push(inputs[i].value);
+            }
+        }
+ 
+        if(selectedSensors.length == 0) {
+            alert("Sensor 를 선택하세요");
+            return;
+        }
+
+        document.getElementById('popup').style.display = 'block';
+
+        _showGraph(selectedSensors);
+    }
+
+    function _showOverpressureImpulseGraph(sensors) {
+        var size = 1000;
+        var noCol = sensors.length;
+
+        var x_data = [];
+        for(let cur_col=0; cur_col<noCol; cur_col++) {
+            let legendName = 'Probe' + sensors[cur_col];
+            x_data.push(legendName);
+        }
+
+        var overpressureArr = [];
+        var impulseArr = [];
+        const time_step = 0.0001;
+
+        for(let cur_col=0; cur_col<noCol; cur_col++) {
+            //var y_data = [];
+            var totalImpulse = 0;
+            //var impulseArray = [];
+
+            let maxImpulseValue = -999999;
+            let maxPressure = -999999;
+
+            for(var i=0; i<size-1; i++) { 
+                var cur_pressure = pressureArray[cur_col][i];
+                var next_pressure = pressureArray[cur_col][i+1];
+                //y_data.push(cur_pressure);
+
+                if(cur_pressure > maxPressure) {
+                    maxPressure = cur_pressure;
+                }
+                let impulse = time_step * (cur_pressure + next_pressure) / 2;
+                totalImpulse += impulse;
+                //impulseArray.push(totalImpulse);
+
+                if(totalImpulse > maxImpulseValue) {
+                    maxImpulseValue = totalImpulse;
+                }
+            }
+
+            // Maxth.max function raises Uncaught RangeError RangeError: Maximum call stack size exceeded
+            // let maxImpulseValue = Math.max(...impulseArray);
+            // maxImpulseValueIndex = impulseArray.indexOf(maxImpulseValue)
+            // maxPressure = Math.max(...y_data)
+
+            overpressureArr.push(maxPressure);
+            impulseArr.push(maxImpulseValue);
+        }
+
+        var trace1 = get_overpressure(x_data, overpressureArr, 'Overpressure', randomColor);
+        var trace2 = get_impulse(x_data, impulseArr, 'Impulse', randomColor);
+        var data = [trace1, trace2];
+        
+        var layout = {
+            title: 'Overpressure-Impulse 그래프',
+            width: 1200,
+            height: 870,
+            yaxis: {title: 'Overpressure (kPa)'},
+            yaxis2: {
+                title: 'Impulse (Kg m/s)',
+                titlefont: {color: 'rgb(148, 103, 189)'},
+                tickfont: {color: 'rgb(148, 103, 189)'},
+                overlaying: 'y',
+                side: 'right'
+            }
+        };
+        
+        Plotly.newPlot('graph', data, layout);
+
+        document.getElementById('popup').style.display = 'none';
+        
+        document.getElementById('graphModal').style.display = "block";
+        var grpdiv = document.getElementById('graph');
+        grpdiv.style.display = "block";
+    }
+
+    function showOverpressureImpulseGraph() {
+        var selectedSensors = [];
+        var inputs = document.getElementsByTagName('input');
+        for(var i = 0; i < inputs.length; i++) {
+            if(inputs[i].getAttribute("type") == "checkbox" && inputs[i].checked == true && inputs[i].value != 100) {
+                selectedSensors.push(inputs[i].value);
+            }
+        }
+ 
+        if(selectedSensors.length == 0) {
+            alert("Sensor 를 선택하세요");
+            return;
+        }
+
+        document.getElementById('popup').style.display = 'block';
+
+        _showOverpressureImpulseGraph(selectedSensors);
+    }
+
+	</script>
+
+    </head>
+
+    <body>
+		<P></P>
+		<div class="title"><h1>CFD 결과</h1></div>
+		<br>
+        <div class="title"><h2>CFD 계산 Parameters</h2></div>
+            <table>
+                <thead>
+                <tr>
+                    <th scope="cols">Parameter</th>
+                    <th scope="cols">입력값</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <th scope="row">방호벽 거리</th>
+                    <td>WALL_DISTANCE (m)</td>
+                </tr>
+                <tr>
+                    <th scope="row">방호벽 높이</th>
+                    <td>WALL_HEIGHT (m)</td>
+                </tr>
+                <tr>
+                    <th scope="row">방호벽 두께</th>
+                    <td>WALL_THICKNESS (m)</td>
+                </tr>
+                <tr>
+                    <th scope="row">수소 텐트 너비</th>
+                    <td>TENT_WIDTH (m)</td>
+                </tr>
+                <tr>
+                    <th scope="row">H2 Volume Fraction</th>
+                    <td>H2_VOLFRAC</td>
+                </tr>
+                <tr>
+                    <th scope="row">H2O Volume Fraction</th>
+                    <td>H2O_VOLFRAC</td>
+                </tr>
+                <tr>
+                    <th scope="row">계산일</th>
+                </tr>
+                </tbody>
+            </table>
+            
+            <br><br>
+            <div class="line"></div>
+            <br>
+            <div class="title"><h2>계산 환경</h2></div>
+            <br>
+            <canvas id="myCanvas" width="1300" height="300"></canvas>
+            <script>
+            // All dimensions are cm. Needs to be multiplied by 10
+            drawEnvironments(TENT_10X_WIDTH, WALL_10X_DISTANCE, WALL_10X_HEIGHT, WALL_10X_THICKNESS);
+
+            </script> 
+
+            <div class="line"></div>
+            <br>
+
+        <BR><BR>
+
+            <div class="title"><h2>Graph</h2></div>
+            <input type="file" name="pfile" onchange="readFile(this)">
+            <br><br>
+            <table>
+                <thead>
+                <tr>
+                    <th scope="cols"></th>
+                    <th scope="cols">P0</th>
+                    <th scope="cols">P1</th>
+                    <th scope="cols">P2</th>
+                    <th scope="cols">P3</th>
+                    <th scope="cols">P4</th>
+                    <th scope="cols">P5</th>
+                    <th scope="cols">P6</th>
+                    <th scope="cols">P7</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <th scope="row"><input type='checkbox' value='100' id="checkAll" name="checkAll" onclick='selectAll(this)' /></th>
+                    <td><input type='checkbox' value='0' id="check0" name="check0" /></td>
+                    <td><input type='checkbox' value='1' id="check1" name="check1" /></td>
+                    <td><input type='checkbox' value='2' id="check2" name="check2" /></td>
+                    <td><input type='checkbox' value='3' id="check3" name="check3" /></td>
+                    <td><input type='checkbox' value='4' id="check4" name="check4" /></td>
+                    <td><input type='checkbox' value='5' id="check5" name="check5" /></td>
+                    <td><input type='checkbox' value='6' id="check6" name="check6" /></td>
+                    <td><input type='checkbox' value='7' id="check7" name="check7" disabled/></td>
+
+                </tr>
+            </table>
+
+            <br>
+
+            <div id='graphModal' class="modal">
+                <span class="close cursor" onclick="closeGraph()">&times;</span>
+                <div class="modal-content">
+                    <div id='graph' class='graph'></div>
+                </div>
+                </div>
+
+    
+            <div id='button-css'>
+                <button class="plot plot--winona plot--border-thin plot--round-s"  onclick='showGraph()'>Show Pressure Graph</button>
+                <button class="plot plot--winona plot--border-thin plot--round-s"  onclick='showOverpressureImpulseGraph()'>Show Overpressure & Impulse Graph</button>
+            </div>
+    
+            <div id="popup" class='modal'>
+                <div class="loadfont"><p>Please Wait...</p></div>
+                <div class="loader"></div>
+                </div>
+            </div>
+	</body>
+</html>
+
+
+               
