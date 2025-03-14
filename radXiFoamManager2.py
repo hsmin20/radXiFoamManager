@@ -14,6 +14,11 @@ class RadXiFoamManager:
     COMBUSTION_PROPERTIES_FILE = "combustionProperties"
     CONTROL_DICT_FILE = "controlDict"
 
+    BLOCK_MESH_FILE_TEMP = "blockMeshDict_Template"
+    FIELD_DICT_FILE_TEMP = "setFieldsDict_Template"
+    COMBUSTION_PROPERTIES_FILE_TEMP = "combustionProperties_Template"
+    CONTROL_DICT_FILE_TEMP = "controlDict_Template"
+
     def __init__(self, wd, wh, wt, tt, h2_volFrac, h2o_volFrac, probeLocations, email):
         self.wallDistance = float(wd)
         self.wallHeight = float(wh)
@@ -114,7 +119,7 @@ class RadXiFoamManager:
         return pl
 
     def replaceAndWriteFiles(self, template_dir, dest_path):
-        blockMeshDictFile = template_dir + self.BLOCK_MESH_FILE
+        blockMeshDictFile = template_dir + self.BLOCK_MESH_FILE_TEMP
         f = open(blockMeshDictFile, "r")
         content = f.read()
         f.close()
@@ -130,7 +135,7 @@ class RadXiFoamManager:
         h2_m_fraction, h2o_m_fraction, n2_m_fraction, eq_ratio, alpha, beta = self.calculateMassFraction(
             self.H2VolumeFraction, self.H2OVolumeFraction)
 
-        setFieldsDictFile = template_dir + self.FIELD_DICT_FILE
+        setFieldsDictFile = template_dir + self.FIELD_DICT_FILE_TEMP
         f = open(setFieldsDictFile, "r")
         content = f.read()
         f.close()
@@ -144,7 +149,7 @@ class RadXiFoamManager:
         f.write(content)
         f.close()
 
-        combustionPropertiesFile = template_dir + self.COMBUSTION_PROPERTIES_FILE
+        combustionPropertiesFile = template_dir + self.COMBUSTION_PROPERTIES_FILE_TEMP
         f = open(combustionPropertiesFile, "r")
         content = f.read()
         f.close()
@@ -158,7 +163,7 @@ class RadXiFoamManager:
         f.write(content)
         f.close()
 
-        controlDictFile = template_dir + self.CONTROL_DICT_FILE
+        controlDictFile = template_dir + self.CONTROL_DICT_FILE_TEMP
         f = open(controlDictFile, "r")
         content = f.read()
         f.close()
