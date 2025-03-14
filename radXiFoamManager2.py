@@ -3,6 +3,7 @@ import sys
 from shutil import copytree
 import subprocess
 from datetime import datetime
+import getpass
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QFileDialog, QVBoxLayout, \
     QWidget, QPushButton, QGridLayout, QLabel, QLineEdit, QGroupBox, QTextEdit, QRadioButton, QHBoxLayout, QCheckBox
 
@@ -11,14 +12,16 @@ class RadXiFoamManager:
     BLOCK_MESH_FILE = "blockMeshDict"
     FIELD_DICT_FILE = "setFieldsDict"
     COMBUSTION_PROPERTIES_FILE = "combustionProperties"
+    CONTROL_DICT_FILE = "controlDict"
 
-    def __init__(self, wd, wh, wt, tt, h2_volFrac, h2o_volFrac, email):
+    def __init__(self, wd, wh, wt, tt, h2_volFrac, h2o_volFrac, probeLocations, email):
         self.wallDistance = float(wd)
         self.wallHeight = float(wh)
         self.wallThickness = float(wt)
         self.tentThickness = float(tt)
         self.H2VolumeFraction = float(h2_volFrac)
         self.H2OVolumeFraction = float(h2o_volFrac)
+        self.probeLocations = probeLocations
         self.email = email
 
     def replaceBlockMeshDictFile(self, content):
@@ -104,6 +107,12 @@ class RadXiFoamManager:
         # H2 mass fraction, H2O mass fraction, N2 mass fraction, equivalence ratio, H2 alpha, H2 beta
         return mf[0], mf[3], mf[2], H2_eq_ratio, H2_alpha, H2_beta
 
+    def makeProbeLocations(self):
+        pl = self.probeLocations
+        pl = pl.replace("),", ")\n")
+        pl = pl.replace(",", " ")
+        return pl
+
     def replaceAndWriteFiles(self, template_dir, dest_path):
         blockMeshDictFile = template_dir + self.BLOCK_MESH_FILE
         f = open(blockMeshDictFile, "r")
@@ -148,6 +157,20 @@ class RadXiFoamManager:
         f = open(fullname, "w")
         f.write(content)
         f.close()
+
+        controlDictFile = template_dir + self.CONTROL_DICT_FILE
+        f = open(controlDictFile, "r")
+        content = f.read()
+        f.close()
+
+        probeLocations = self.makeProbeLocations()
+        content = content.replace('PROBE_LOCATIONS', probeLocations)
+
+        fullname = dest_path + r"/system/" + self.CONTROL_DICT_FILE
+        f = open(fullname, "w")
+        f.write(content)
+        f.close()
+
 
 class RadXiFoamWindow(QMainWindow):
     def __init__(self):
@@ -249,7 +272,12 @@ class RadXiFoamWindow(QMainWindow):
         labelH2OVF = QLabel('H2O Volume Fraction')
         self.editH2OVF = QLineEdit('0.2')
 
-        label5 = QLabel('Requester Information')
+        label5 = QLabel('Probe Locations')
+        labelProbe = QLabel('(x,y,z) format locations')
+        self.editProbes = QLineEdit('(1,0,0),(2,0,0),(5,0,0),(6,0,0),(7,0,0)')
+        self.editProbes.setFixedWidth(600)
+
+        label6 = QLabel('Requester Information')
         labelEmail = QLabel('Email (used for calculation folder name)')
         self.editEmail = QLineEdit('abc@def.co.kr')
 
@@ -270,8 +298,11 @@ class RadXiFoamWindow(QMainWindow):
         layout.addWidget(labelH2OVF, 5, 2)
         layout.addWidget(self.editH2OVF, 5, 3)
         layout.addWidget(label5, 6, 0)
-        layout.addWidget(labelEmail, 7, 0)
-        layout.addWidget(self.editEmail, 7, 1, 1, 2)
+        layout.addWidget(labelProbe, 7, 0)
+        layout.addWidget(self.editProbes, 7, 1, 1, 6)
+        layout.addWidget(label6, 8, 0)
+        layout.addWidget(labelEmail, 9, 0)
+        layout.addWidget(self.editEmail, 9, 1, 1, 2)
         groupbox.setLayout(layout)
 
         return groupbox
@@ -324,7 +355,8 @@ class RadXiFoamWindow(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def copyReportHtml(self, dest_dir, sWallDistance, sWallHeight, sWallThickness, sTentThickness, sH2Fraction, sH2OFraction):
+    def copyReportHtml(self, dest_dir, sWallDistance, sWallHeight, sWallThickness, sTentThickness, sH2Fraction,
+                       sH2OFraction, sensorPositions):
         report_dir = dest_dir + '/postProcessing/sensorP/0'
 
         reportTemplateFile = './kaeri_CFD_result_TEMPLATE_offline.html'
@@ -340,6 +372,8 @@ class RadXiFoamWindow(QMainWindow):
         content = content.replace('TENT_WIDTH', sTentThickness)
         content = content.replace('H2_VOLFRAC', sH2Fraction)
         content = content.replace('H2O_VOLFRAC', sH2OFraction)
+        content = content.replace('SENSOR_POSITIONS', sensorPositions)
+        content = content.replace('EMAIL_ADDR', getpass.getuser())
 
         date = datetime.now()
         datestr = date.strftime("%Y-%m-%d %H:%S")
@@ -354,6 +388,26 @@ class RadXiFoamWindow(QMainWindow):
         content = content.replace('WALL_10X_HEIGHT', sWallHeight10x)
         content = content.replace('WALL_10X_THICKNESS', sWallThickness10x)
         content = content.replace('TENT_10X_WIDTH', sTentThickness10x)
+
+        sensorPos2 = "".join(sensorPositions.split()) #remove whitespaces
+        sensorPos2 = sensorPos2.replace("(", "")
+        sensorPos2 = sensorPos2.replace(")", "")
+        sensorList = sensorPos2.split(',')
+        sensorSize = int(len(sensorList) / 3)
+
+        columnString = '<th scope="cols"></th>'
+        for i in range(sensorSize):
+            newColumn = '<th scope="cols">P' + str(i) + '</th>'
+            columnString = columnString + '\n' + newColumn
+
+        rowString = ''
+        for i in range(sensorSize):
+            newRow = '<td><input type="checkbox" value=' + str(i) + 'id="check' + str(i) + '" name="check' + str(i) + '" /></td>'
+            rowString = rowString + '\n' + newRow
+
+        content = content.replace('TABLE_COLUMN', columnString)
+        content = content.replace('TABLE_ROW', rowString)
+
 
         fullname = report_dir + r"/kaeri_CFD_result.html"
         f = open(fullname, "w")
@@ -387,6 +441,7 @@ class RadXiFoamWindow(QMainWindow):
             sTentThickness = self.editTT.text()
             sH2Fraction = self.editH2VF.text()
             sH2OFraction = self.editH2OVF.text()
+            probeLocations = self.editProbes.text()
 
             wallDistance = float(sWallDistance)
             wallHeight = float(sWallHeight)
@@ -395,13 +450,15 @@ class RadXiFoamWindow(QMainWindow):
             H2Fraction = float(sH2Fraction)
             H2OFraction = float(sH2OFraction)
 
-            radXi = RadXiFoamManager(wallDistance, wallHeight, wallThickness, tentThickness, H2Fraction, H2OFraction, email)
+            radXi = RadXiFoamManager(wallDistance, wallHeight, wallThickness, tentThickness, H2Fraction, H2OFraction,
+                                     probeLocations, email)
 
             radXi.replaceAndWriteFiles(template_dir, destination_dir)
 
             self.messageTE.append('Mesh file and other properties files are written and copied.')
 
-            self.copyReportHtml(destination_dir, sWallDistance, sWallHeight, sWallThickness, sTentThickness, sH2Fraction, sH2OFraction)
+            self.copyReportHtml(destination_dir, sWallDistance, sWallHeight, sWallThickness, sTentThickness,
+                                sH2Fraction, sH2OFraction, probeLocations)
 
             self.messageTE.append('Report file is written and copied.')
 
