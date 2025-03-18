@@ -4,9 +4,11 @@ from shutil import copytree
 import subprocess
 from datetime import datetime
 import getpass
+
+from PyQt5.QtCore import QDateTime, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QFileDialog, QVBoxLayout, \
     QWidget, QPushButton, QGridLayout, QLabel, QLineEdit, QGroupBox, QTextEdit, QRadioButton, QHBoxLayout, QCheckBox
-
+import pyodbc
 
 class RadXiFoamManager:
     BLOCK_MESH_FILE = "blockMeshDict"
@@ -178,6 +180,11 @@ class RadXiFoamManager:
 
 
 class RadXiFoamWindow(QMainWindow):
+    SERVER = '192.168.0.4'
+    DATABASE = 'HydrogenDB'
+    USERNAME = 'db_user'
+    PASSWORD = 'dahan_2845@tech'
+
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -283,8 +290,19 @@ class RadXiFoamWindow(QMainWindow):
         self.editProbes.setFixedWidth(600)
 
         label6 = QLabel('Requester Information')
-        labelEmail = QLabel('Email (used for calculation folder name)')
+        labelEmail = QLabel('Email (used for folder name)')
         self.editEmail = QLineEdit('abc@def.co.kr')
+        labelDate = QLabel('Datetime requested')
+        datetime = QDateTime.currentDateTime()
+        sDatetime = datetime.toString(Qt.DefaultLocaleLongDate)
+        self.editDatetime = QLineEdit(sDatetime)
+
+        getFromDBBtn = QPushButton('Get Information from DB')
+        getFromDBBtn.clicked.connect(self.getFromDB)
+        labelIdNum = QLabel('id to get (0 means latest)')
+        self.editIdNum = QLineEdit('0')
+        checkDBBtn = QPushButton('Check DB')
+        checkDBBtn.clicked.connect(self.checkDB)
 
         layout = QGridLayout()
         layout.addWidget(label2, 0, 0)
@@ -308,6 +326,12 @@ class RadXiFoamWindow(QMainWindow):
         layout.addWidget(label6, 8, 0)
         layout.addWidget(labelEmail, 9, 0)
         layout.addWidget(self.editEmail, 9, 1, 1, 2)
+        layout.addWidget(labelDate, 9, 3)
+        layout.addWidget(self.editDatetime, 9, 4, 1, 2)
+        layout.addWidget(getFromDBBtn, 10, 0, 1, 2)
+        layout.addWidget(labelIdNum, 10, 2)
+        layout.addWidget(self.editIdNum, 10, 3)
+        layout.addWidget(checkDBBtn, 10, 4)
         groupbox.setLayout(layout)
 
         return groupbox
@@ -327,7 +351,7 @@ class RadXiFoamWindow(QMainWindow):
         self.messageTE = QTextEdit(self, readOnly=True)
 
         layout = QGridLayout()
-        layout.addWidget(self.messageTE, 0, 0, 1, 3)
+        layout.addWidget(self.messageTE, 0, 0, 1, 6)
         layout.addWidget(requestBtn, 1, 0)
         layout.addWidget(self.radioSingle, 1, 1)
         layout.addWidget(self.radioMulti, 1, 2)
@@ -350,7 +374,7 @@ class RadXiFoamWindow(QMainWindow):
 
         self.centralWidget().setLayout(layout)
 
-        self.resize(400, 800)
+        self.resize(800, 800)
         self.center()
         self.show()
 
@@ -359,6 +383,59 @@ class RadXiFoamWindow(QMainWindow):
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+    def getFromDB(self):
+        connectionString = (f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={self.SERVER};DATABASE={self.DATABASE};'
+                            f'UID={self.USERNAME};PWD={self.PASSWORD}')
+        conn = pyodbc.connect(connectionString)
+        cursor = conn.cursor()
+
+        QUERY = 'SELECT top 1 * FROM calculation_requests order by id desc'
+        idNumber = self.editIdNum.text()
+        if idNumber != '0':
+            QUERY = 'SELECT * FROM calculation_requests WHERE id=' + idNumber
+        cursor.execute(QUERY)
+
+        record = cursor.fetchone()
+        wall_distance = record.wall_distance
+        wall_height = record.wall_height
+        wall_thickness = record.wall_thickness
+        tent_width = record.tent_width
+        h2_fraction = record.h2_fraction
+        h2o_fraction = record.h2o_fraction
+        sensorPos = record.sensor_position
+        email = record.email
+        created_at = record.created_at
+
+        self.editWD.setText(str(wall_distance))
+        self.editWH.setText(str(wall_height))
+        self.editWT.setText(str(wall_thickness))
+        self.editTT.setText(str(tent_width))
+        self.editH2VF.setText(str(h2_fraction))
+        self.editH2OVF.setText(str(h2o_fraction))
+        self.editProbes.setText(sensorPos)
+        self.editEmail.setText(email)
+        self.editDatetime.setText(created_at.strftime("%Y-%m-%d %H:%M:%S"))
+        self.messageTE.append(f'id is {record.id} & user_id is {record.user_id}')
+
+        conn.close()
+
+    def checkDB(self):
+        connectionString = (f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={self.SERVER};DATABASE={self.DATABASE};'
+                            f'UID={self.USERNAME};PWD={self.PASSWORD}')
+        conn = pyodbc.connect(connectionString)
+        cursor = conn.cursor()
+
+        QUERY = 'SELECT * FROM calculation_requests'
+        cursor.execute(QUERY)
+
+        records = cursor.fetchall()
+        for r in records:
+            record = (f"{r.id}\t{r.user_id}\t{r.wall_distance},{r.wall_height},{r.wall_thickness},{r.tent_width}"
+                      f",{r.h2_fraction},{r.h2o_fraction}\t{r.email}\t{r.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+            self.messageTE.append(record)
+
+        conn.close()
 
     def copyReportHtml(self, dest_dir, sWallDistance, sWallHeight, sWallThickness, sTentThickness, sH2Fraction,
                        sH2OFraction, sensorPositions):
